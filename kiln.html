@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>窑变</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%239d3f34'/%3E%3Cpath d='M10 22V10h12' fill='none' stroke='%23fdf8ee' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+  *{box-sizing:border-box}
+  :root{
+    --paper:#efe6d5;
+    --card:#fbf6ec;
+    --ink:#2a251e;
+    --ink2:#6d6355;
+    --ink3:#9c9081;
+    --zhu:#9d3f34;
+    --line:rgba(42,37,30,.28);
+    --line2:rgba(42,37,30,.12);
+    --song:"Songti SC","STSong","SimSun","Noto Serif CJK SC","Source Han Serif SC",serif;
+  }
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);font-family:var(--song);
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1200px 640px at 50% -14%, rgba(255,252,244,.9), rgba(255,252,244,0) 62%),
+      radial-gradient(760px 520px at 8% 108%, rgba(120,104,84,.10), rgba(120,104,84,0) 70%),
+      radial-gradient(760px 520px at 94% 102%, rgba(120,104,84,.09), rgba(120,104,84,0) 70%);
+    min-height:100vh;display:flex;flex-direction:column;
+  }
+  /* 纸纹 */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.16'/></svg>");
+    mix-blend-mode:multiply;
+  }
+
+  /* 窗棂 */
+  .lattice{
+    position:relative;z-index:1;
+    height:52px;width:100%;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><g fill='none' stroke='%232a251e' stroke-width='1.4' stroke-opacity='.42'><path d='M32 0v64M0 32h64'/><path d='M32 10 54 32 32 54 10 32z'/><path d='M32 22 42 32 32 42 22 32z' stroke-opacity='.7'/></g></svg>");
+    background-size:auto 100%;
+    background-position:center;
+    mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);
+  }
+  .lattice.top{border-bottom:1px solid var(--line2)}
+  .lattice.bot{border-top:1px solid var(--line2);transform:scaleY(-1)}
+
+  .wrap{position:relative;z-index:2;width:100%;max-width:1080px;margin:0 auto;padding:26px 26px 30px;
+    flex:1;display:flex;flex-direction:column}
+
+  /* 卡面 */
+  .card{
+    margin:auto 0;width:100%;position:relative;background:var(--card);
+    border:1px solid var(--line);
+    box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 18px 48px -28px rgba(60,48,32,.55);
+    padding:34px 40px 30px;
+  }
+  .card::before{ /* 内框 */
+    content:"";position:absolute;inset:7px;border:1px solid rgba(157,63,52,.32);pointer-events:none;
+  }
+  .card::after{ /* 暗纹 */
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.045;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='46' height='46' viewBox='0 0 46 46'><g fill='none' stroke='%232a251e' stroke-width='.9'><path d='M23 0v46M0 23h46'/></g></svg>");
+    background-size:46px 46px;
+  }
+  .corner{position:absolute;width:38px;height:38px;color:var(--zhu);opacity:.55;pointer-events:none}
+  .corner.tl{top:-1px;left:-1px}
+  .corner.tr{top:-1px;right:-1px;transform:scaleX(-1)}
+  .corner.bl{bottom:-1px;left:-1px;transform:scaleY(-1)}
+  .corner.br{bottom:-1px;right:-1px;transform:scale(-1)}
+
+  /* 题头 */
+  header{position:relative;text-align:center;padding:8px 0 22px}
+  .seal{
+    width:28px;height:28px;background:var(--zhu);color:#fdf8ee;margin:0 auto 16px;
+    display:grid;place-items:center;font-size:17px;line-height:1;border-radius:2px;
+    box-shadow:0 0 0 1px rgba(157,63,52,.35);transform:rotate(-1.5deg);
+  }
+  h1{
+    margin:0;font-size:40px;font-weight:400;letter-spacing:.42em;text-indent:.42em;
+    color:var(--ink);
+  }
+  .rule{width:120px;height:1px;background:linear-gradient(90deg,transparent,var(--line) 30%,var(--line) 70%,transparent);margin:16px auto 0}
+  .sub{margin:13px 0 0;font-size:11.5px;letter-spacing:.52em;text-indent:.52em;color:var(--ink3)}
+
+  /* 投放 */
+  .drop{
+    position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    min-height:290px;border:1px dashed rgba(42,37,30,.3);background:rgba(255,255,255,.34);
+    cursor:pointer;transition:.25s;padding:30px;
+  }
+  .drop:hover{border-color:rgba(157,63,52,.5);background:rgba(255,255,255,.55)}
+  .drop.over{border-color:var(--zhu);background:rgba(157,63,52,.05)}
+  .drop .plus{width:34px;height:34px;color:var(--ink3);transition:.25s}
+  .drop:hover .plus{color:var(--zhu)}
+  .drop .t{font-size:14px;letter-spacing:.34em;text-indent:.34em;color:var(--ink2)}
+  .drop .n{font-size:11px;letter-spacing:.2em;color:var(--ink3)}
+
+  /* 结果 */
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+  figure{margin:0;position:relative}
+  .ph{
+    position:relative;border:1px solid var(--line2);background:#fff;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    height:clamp(210px, 46vh, 500px);
+  }
+  .ph canvas{display:block;max-width:100%;max-height:100%;width:auto;height:auto;
+    box-shadow:0 5px 18px -10px rgba(50,40,28,.5)}
+  figcaption{
+    margin-top:10px;text-align:center;font-size:12px;letter-spacing:.4em;text-indent:.4em;color:var(--ink3);
+  }
+  figcaption b{font-weight:400;color:var(--zhu)}
+
+  /* 底栏 */
+  .bar{
+    display:flex;align-items:center;gap:14px;margin-top:22px;padding-top:18px;
+    border-top:1px solid var(--line2);flex-wrap:wrap;
+  }
+  .dirs{display:flex;border:1px solid var(--line);overflow:hidden}
+  .dirs button{
+    font-family:var(--song);font-size:13px;letter-spacing:.12em;color:var(--ink2);
+    background:transparent;border:0;padding:9px 16px;cursor:pointer;transition:.2s;
+  }
+  .dirs button + button{border-left:1px solid var(--line)}
+  .dirs button:hover{color:var(--ink);background:rgba(157,63,52,.05)}
+  .dirs button.on{background:var(--zhu);color:#fdf8ee}
+  .spacer{flex:1}
+  .amt{display:flex;align-items:center;gap:9px;color:var(--ink3);font-size:11px;letter-spacing:.18em}
+  .amt input{
+    -webkit-appearance:none;appearance:none;width:104px;height:1px;background:var(--line2);
+    outline:none;cursor:pointer;
+  }
+  .amt input::-webkit-slider-thumb{
+    -webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--zhu);
+    box-shadow:0 0 0 2px var(--card);cursor:pointer;
+  }
+  .amt input::-moz-range-thumb{
+    width:11px;height:11px;border:0;border-radius:50%;background:var(--zhu);cursor:pointer;
+  }
+  @media(max-width:560px){ .amt input{width:74px} }
+  .ghost{
+    font-family:var(--song);font-size:13px;letter-spacing:.14em;color:var(--ink2);
+    background:transparent;border:1px solid var(--line);padding:9px 18px;cursor:pointer;transition:.2s;
+  }
+  .ghost:hover{color:var(--zhu);border-color:rgba(157,63,52,.55);background:rgba(157,63,52,.04)}
+
+  [hidden]{display:none!important}
+
+  @media(max-width:760px){
+    .wrap{padding:18px 12px 34px}
+    .card{padding:22px 16px 20px}
+    .pair{grid-template-columns:1fr;gap:16px}
+    h1{font-size:31px}
+    .lattice{height:42px}
+  }
+</style>
+</head>
+<body>
+
+<div class="lattice top"></div>
+
+<div class="wrap">
+  <div class="card">
+    <svg class="corner tl" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.1">
+      <path d="M1 39V1h38"/><path d="M7 33V7h26"/><path d="M13 27V13h14"/><path d="M19 21v-2h4"/>
+    </svg>
+    <svg class="corner tr" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.1">
+      <path d="M1 39V1h38"/><path d="M7 33V7h26"/><path d="M13 27V13h14"/><path d="M19 21v-2h4"/>
+    </svg>
+    <svg class="corner bl" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.1">
+      <path d="M1 39V1h38"/><path d="M7 33V7h26"/><path d="M13 27V13h14"/><path d="M19 21v-2h4"/>
+    </svg>
+    <svg class="corner br" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.1">
+      <path d="M1 39V1h38"/><path d="M7 33V7h26"/><path d="M13 27V13h14"/><path d="M19 21v-2h4"/>
+    </svg>
+
+    <header>
+      <div class="seal">窑</div>
+      <h1>窑变</h1>
+      <div class="rule"></div>
+      <p class="sub">瓷色推移</p>
+    </header>
+
+    <section id="drop" class="drop">
+      <svg class="plus" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1">
+        <path d="M16 4v24M4 16h24"/>
+      </svg>
+      <div class="t">拖入图片</div>
+    </section>
+
+    <section id="work" hidden>
+      <div class="pair">
+        <figure>
+          <div class="ph"><canvas id="cvSrc"></canvas></div>
+          <figcaption id="capSrc">前</figcaption>
+        </figure>
+        <figure>
+          <div class="ph"><canvas id="cvDst"></canvas></div>
+          <figcaption id="capDst"><b>后</b></figcaption>
+        </figure>
+      </div>
+
+      <div class="bar">
+        <div class="dirs" id="dirs">
+          <button data-dir="fwd" class="on">前 → 后</button>
+          <button data-dir="inv" title="由烧成色反推初始釉色，纯黑纯白处不可完全还原">后 → 前</button>
+        </div>
+        <div class="amt" title="调大：变化更浓，深处更黑、浅处更黄">
+          <span>淡</span><input type="range" id="amt" min="0.6" max="2.0" step="0.05" value="1.25" aria-label="浓淡"><span>浓</span>
+        </div>
+        <div class="spacer"></div>
+        <button class="ghost" id="btnAgain">换图</button>
+        <button class="ghost" id="btnSave">存图</button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div class="lattice bot"></div>
+<input type="file" id="file" accept="image/*" hidden>
+
+<script>
+(function () {
+  'use strict';
+
+  /* 拟合所得：
+       x1 = a·x + b                                 逐通道线性
+       w  = C·t^0.746·(1−t)^1.165 ，t = x/255        两端权重
+       y  = x + K·w·(x1 − x)                        纯黑、纯白仍不动
+     K = 1.25 为标定值：把变化量放大四分之一，深处更黑、浅处更黄；
+     调大只加浓，不改变色相方向。三个通道各自单调不减，故可反解。 */
+  const A = [1.5348, 1.9364, 1.8902];
+  const B = [-126.22, -223.93, -241.17];
+  const WP = 0.746, WQ = 1.165, WC = 3.590511;
+  /* 亮度直线（43 块拟合）：用于"低彩度按亮度走"的那一路 */
+  const AY = 1.6872, BY = -174.40;
+  /* 彩度混合：通道差 < C0 全按亮度走（保色相），> C1 全按通道独立走（黄化） */
+  const C0 = 6, C1 = 40, S_CHROMA = 2.0;
+  const K_DEFAULT = 1.25;
+  const MAXSIDE = 3000;
+  let K = K_DEFAULT;
+
+  const clamp = (v) => v < 0 ? 0 : (v > 255 ? 255 : v);
+
+  function weightAt(x) {
+    const t = Math.min(1, Math.max(0, x / 255));
+    return Math.min(1, Math.max(0,
+      WC * Math.pow(Math.max(t, 1e-9), WP) * Math.pow(Math.max(1 - t, 1e-9), WQ)));
+  }
+
+  function blendAt(x, c) {
+    const v = Math.min(255, Math.max(0, x));
+    const w = weightAt(v);
+    const base = (1 - w) * v + w * (A[c] * v + B[c]);
+    return v + K * (base - v);
+  }
+
+  // 每通道 256 级查表：正变换直接取值；逆变换二分（曲线严格单调）
+  const LUT = { fwd: [[], [], []], inv: [[], [], []] };
+  const LUM = new Float32Array(256);      // 亮度映射（同一套 w 与 K）
+  const LUM_INV = new Float32Array(256);  // 亮度反查表
+
+  function buildLUT() {
+    for (let c = 0; c < 3; c++) {
+      for (let i = 0; i < 256; i++) LUT.fwd[c][i] = Math.round(clamp(blendAt(i, c)));
+      for (let v = 0; v < 256; v++) {
+        let lo = 0, hi = 255;
+        for (let k = 0; k < 32; k++) {
+          const mid = (lo + hi) / 2;
+          if (clamp(blendAt(mid, c)) < v) lo = mid; else hi = mid;
+        }
+        LUT.inv[c][v] = Math.round(clamp((lo + hi) / 2));
+      }
+    }
+    for (let i = 0; i < 256; i++) {
+      const w = weightAt(i);
+      const base = (1 - w) * i + w * (AY * i + BY);
+      LUM[i] = clamp(i + K * (base - i));
+    }
+    buildLumInv();
+  }
+  buildLUT();
+
+  /* 单像素正向：低彩度按"亮度 + 色度"，高彩度按通道独立，中间过渡
+     —— 这样中性灰不会被三通道各自的斜率染成暗橙。 */
+  function fwdRGB(r, g, b, out) {
+    r = clamp(r); g = clamp(g); b = clamp(b);
+    const ri = r | 0, gi = g | 0, bi = b | 0;
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const i0 = lum | 0, fr = lum - i0;
+    const L2 = LUM[i0] * (1 - fr) + LUM[i0 < 255 ? i0 + 1 : 255] * fr;
+    // 低彩度 + 偏暗 → 按亮度走（灰不被染橙）；有彩度或很亮 → 按通道独立走（黄化）
+    let wc = ((Math.max(r, g, b) - Math.min(r, g, b)) - C0) / (C1 - C0);
+    wc = wc < 0 ? 0 : (wc > 1 ? 1 : wc);
+    let wl = (lum - 160) / 40;
+    wl = wl < 0 ? 0 : (wl > 1 ? 1 : wl);
+    const w = wc > wl ? wc : wl;
+    const p2r = L2 + S_CHROMA * (r - lum), p2g = L2 + S_CHROMA * (g - lum), p2b = L2 + S_CHROMA * (b - lum);
+    const p1r = LUT.fwd[0][ri], p1g = LUT.fwd[1][gi], p1b = LUT.fwd[2][bi];
+    out[0] = clamp(p2r + w * (p1r - p2r));
+    out[1] = clamp(p2g + w * (p1g - p2g));
+    out[2] = clamp(p2b + w * (p1b - p2b));
+  }
+
+  /* 单像素反向：正向输出亮度恒等于 LUM(lum)，据此反查 lum，再还原色度。
+     对高彩度像素是近似（正向那一路走的是通道独立），但稳定、不会跳到别的解。 */
+  function buildLumInv() {
+    let j = 0;
+    for (let i = 0; i < 256; i++) {
+      while (j < 255 && LUM[j + 1] <= i) j++;
+      LUM_INV[i] = LUM[j + 1] > LUM[j] ? j + (i - LUM[j]) / (LUM[j + 1] - LUM[j]) : j;
+    }
+  }
+  function invRGB(tr, tg, tb, out) {
+    const L2 = 0.2126 * tr + 0.7152 * tg + 0.0722 * tb;
+    const li = Math.min(255, Math.max(0, L2)) | 0;
+    const f = Math.min(255, Math.max(0, L2)) - li;
+    const lum = LUM_INV[li] * (1 - f) + LUM_INV[Math.min(255, li + 1)] * f;
+    out[0] = clamp(lum + (tr - L2) / S_CHROMA);
+    out[1] = clamp(lum + (tg - L2) / S_CHROMA);
+    out[2] = clamp(lum + (tb - L2) / S_CHROMA);
+  }
+
+  const $ = (s) => document.querySelector(s);
+  const drop = $('#drop'), work = $('#work'), fileInput = $('#file');
+  const cvSrc = $('#cvSrc'), cvDst = $('#cvDst');
+  const ctxSrc = cvSrc.getContext('2d', { willReadFrequently: true });
+  const ctxDst = cvDst.getContext('2d', { willReadFrequently: true });
+
+  let srcPixels = null;   // 原始 ImageData（副本，用于反复切换方向）
+  let dir = 'fwd';
+  let baseName = '窑变';
+
+  /* ---------- 读图 ---------- */
+  async function loadBitmap(file) {
+    if (window.createImageBitmap) {
+      try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) {}
+    }
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = rej;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function useFile(file) {
+    if (!file || !/^image\//.test(file.type)) return;
+    baseName = (file.name || '窑变').replace(/\.[^.]+$/, '');
+    const bmp = await loadBitmap(file);
+    const W = bmp.width, H = bmp.height;
+    const k = Math.min(1, MAXSIDE / Math.max(W, H));
+    const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
+
+    cvSrc.width = w; cvSrc.height = h;
+    cvDst.width = w; cvDst.height = h;
+    ctxSrc.drawImage(bmp, 0, 0, w, h);
+    srcPixels = ctxSrc.getImageData(0, 0, w, h);
+    if (bmp.close) bmp.close();
+
+    apply();
+    drop.hidden = true;
+    work.hidden = false;
+  }
+
+  /* ---------- 逐像素变换 ---------- */
+  function apply() {
+    if (!srcPixels) return;
+    const src = srcPixels.data;
+    const out = ctxDst.createImageData(srcPixels.width, srcPixels.height);
+    const dst = out.data;
+    const buf = [0, 0, 0];
+    if (dir === 'fwd') {
+      for (let i = 0; i < src.length; i += 4) {
+        fwdRGB(src[i], src[i + 1], src[i + 2], buf);
+        dst[i]     = Math.round(buf[0]);
+        dst[i + 1] = Math.round(buf[1]);
+        dst[i + 2] = Math.round(buf[2]);
+        dst[i + 3] = src[i + 3];
+      }
+    } else {
+      const ir = LUT.inv[0], ig = LUT.inv[1], ib = LUT.inv[2];
+      for (let i = 0; i < src.length; i += 4) {
+        const tr = src[i], tg = src[i + 1], tb = src[i + 2];
+        /* 彩度高的像素正向走的是通道独立那一路，用逐通道反查更准；
+           其余用亮度解析反解，保证灰不偏色。 */
+        if (Math.max(tr, tg, tb) - Math.min(tr, tg, tb) > 40) {
+          dst[i] = ir[tr]; dst[i + 1] = ig[tg]; dst[i + 2] = ib[tb];
+        } else {
+          invRGB(tr, tg, tb, buf);
+          dst[i] = Math.round(buf[0]);
+          dst[i + 1] = Math.round(buf[1]);
+          dst[i + 2] = Math.round(buf[2]);
+        }
+        dst[i + 3] = src[i + 3];
+      }
+    }
+    ctxDst.putImageData(out, 0, 0);
+    $('#capSrc').textContent = dir === 'fwd' ? '前' : '后';
+    $('#capDst').innerHTML = dir === 'fwd' ? '<b>后</b>' : '<b>前</b>';
+  }
+
+  /* ---------- 交互 ---------- */
+  drop.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (f) useFile(f);
+  });
+
+  ['dragenter', 'dragover'].forEach((ev) =>
+    document.addEventListener(ev, (e) => {
+      if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+      e.preventDefault();
+      drop.classList.add('over');
+    }));
+  ['dragleave', 'drop'].forEach((ev) =>
+    document.addEventListener(ev, (e) => {
+      if (ev === 'drop') e.preventDefault();
+      drop.classList.remove('over');
+    }));
+  document.addEventListener('drop', (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) useFile(f);
+  });
+
+  $('#dirs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-dir]');
+    if (!btn) return;
+    dir = btn.dataset.dir;
+    [...$('#dirs').children].forEach((b) => b.classList.toggle('on', b === btn));
+    apply();
+  });
+
+  // 浓淡滑杆：重算查表并重绘（rAF 节流，避免拖动时堆积）
+  let rafPending = false;
+  $('#amt').addEventListener('input', (e) => {
+    K = parseFloat(e.target.value) || K_DEFAULT;
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(() => {
+      rafPending = false;
+      buildLUT();
+      if (srcPixels) apply();
+    });
+  });
+
+  $('#btnAgain').addEventListener('click', () => fileInput.click());
+
+  $('#btnSave').addEventListener('click', () => {
+    if (!srcPixels) return;
+    cvDst.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = baseName + (dir === 'fwd' ? '_后' : '_前') + '.png';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }, 'image/png');
+  });
+
+  /* 供自动化测试调用 */
+  window.__kiln = {
+    LUT, LUM, apply, buildLUT, fwdRGB, invRGB,
+    get dir() { return dir; },
+    get K() { return K; },
+    setK(v) { K = v; $('#amt').value = String(v); buildLUT(); if (srcPixels) apply(); },
+    useFile,
+    dataURL: (which) => (which === 'dst' ? cvDst : cvSrc).toDataURL('image/png'),
+  };
+})();
+</script>
+</body>
+</html>
